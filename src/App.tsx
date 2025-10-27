@@ -3,12 +3,14 @@ import { Provider, useDispatch } from "react-redux";
 import { store, type AppDispatch } from "./Redux/store";
 import AppRoutes from "./Routes/AppRoutes";
 import { fetchUsers } from "./Redux/useslice";
+import { fetchCards } from "./Redux/cardSlice"; // ✅ new import
 
-const PreloadUsers: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const dispatch = useDispatch<AppDispatch>();     // used the type dispatch from store
+const PreloadData: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
-    dispatch(fetchUsers()); // fetch all users on app start
+    dispatch(fetchUsers());
+    dispatch(fetchCards()); // ✅ preload cards
   }, [dispatch]);
 
   return children;
@@ -16,9 +18,9 @@ const PreloadUsers: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const App = () => (
   <Provider store={store}>
-    <PreloadUsers>
+    <PreloadData>
       <AppRoutes />
-    </PreloadUsers>
+    </PreloadData>
   </Provider>
 );
 

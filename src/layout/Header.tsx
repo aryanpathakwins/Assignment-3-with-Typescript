@@ -1,3 +1,4 @@
+import React from "react";
 import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { DownOutlined } from "@ant-design/icons";
@@ -5,7 +6,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../Redux/store";
 import { logout } from "../Redux/useslice";
-import React from "react";
 
 const Header: React.FC = () => {
   const { currentUser } = useSelector((state: RootState) => state.user);
@@ -33,17 +33,31 @@ const Header: React.FC = () => {
   ];
 
   return (
-    <nav className="relative flex items-center justify-between px-6 py-4 bg-white/40 backdrop-blur-sm shadow-md border-b border-gray-200">
-      <img src="./logo1.jpg" className="w-10 h-10" alt="Logo" />
+    <nav className="flex flex-wrap items-center justify-between px-4 sm:px-6 py-3 bg-blue-500/40 backdrop-blur-md shadow-md border-b border-gray-200">
+      {/* Logo Section */}
+      <div className="flex items-center gap-2">
+        <img
+          src="./logo1.jpg"
+          className="w-9 h-9 sm:w-10 sm:h-10 object-cover rounded-full"
+          alt="Logo"
+        />
+        <h1 className="text-base sm:text-lg font-semibold text-gray-800">
+          My Dashboard
+        </h1>
+      </div>
 
-      <Dropdown menu={{ items: menuItems }} placement="bottomRight">
-        <button
-          type="button"
-          className="flex items-center gap-1 text-gray-700 hover:text-indigo-600 focus:outline-none"
-        >
-          {currentUser?.fullName || "My Profile"} <DownOutlined />
-        </button>
-      </Dropdown>
+      {/* Profile Dropdown */}
+      <div className="mt-2 sm:mt-0">
+        <Dropdown menu={{ items: menuItems }} placement="bottomRight" arrow>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-sm sm:text-base text-gray-700 hover:text-indigo-600 focus:outline-none"
+          >
+            {currentUser?.fullName || "My Profile"}{" "}
+            <DownOutlined className="text-xs sm:text-sm" />
+          </button>
+        </Dropdown>
+      </div>
     </nav>
   );
 };
