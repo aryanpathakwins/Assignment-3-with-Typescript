@@ -29,9 +29,7 @@ interface User {
 
 const UsersModal: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { users, loading, error } = useSelector(
-    (state: RootState) => state.user
-  );
+  const { users, loading, error } = useSelector((state: RootState) => state.user);
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -42,7 +40,7 @@ const UsersModal: React.FC = () => {
     current: 1,
     pageSize: 5,
     showSizeChanger: true,
-    pageSizeOptions: [1, 3, 5, 10, 20],
+    pageSizeOptions: [3, 5, 10, 20],
   });
 
   useEffect(() => {
@@ -66,7 +64,6 @@ const UsersModal: React.FC = () => {
     setProfileImage(user.profileImage || null);
   };
 
-  // ✅ Same reliable image upload logic as Profile page
   const getBase64 = (file: RcFile): Promise<string | null> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -88,28 +85,26 @@ const UsersModal: React.FC = () => {
       file.type === "image/jpg";
 
     if (!isJpgOrPng) {
-      message.error("You can only upload JPG/PNG files!");
+      message.error("Only JPG/PNG files allowed!");
       return Upload.LIST_IGNORE;
     }
 
     try {
       const base64 = await getBase64(file);
       setProfileImage(base64);
-      message.success("Image uploaded successfully!");
+      message.success("Image uploaded!");
     } catch {
       message.error("Failed to upload image");
     }
 
-    return false; // prevents auto-upload
+    return false;
   };
 
   const handleUpdate = async () => {
     if (!editingUser) return;
     const values = form.getFieldsValue();
     try {
-      await dispatch(
-        updateUser({ ...editingUser, ...values, profileImage })
-      ).unwrap();
+      await dispatch(updateUser({ ...editingUser, ...values, profileImage })).unwrap();
       message.success("Profile updated successfully");
       setEditingUser(null);
     } catch (err: any) {
@@ -118,15 +113,14 @@ const UsersModal: React.FC = () => {
   };
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user: User) => {
-      const term = searchText.toLowerCase();
-      return (
+    const term = searchText.toLowerCase();
+    return users.filter(
+      (user: User) =>
         user.fullName?.toLowerCase().includes(term) ||
         user.email?.toLowerCase().includes(term) ||
         user.phoneNumber?.toLowerCase().includes(term) ||
         user.gender?.toLowerCase().includes(term)
-      );
-    });
+    );
   }, [users, searchText]);
 
   const columns: ColumnsType<User> = [
@@ -135,6 +129,8 @@ const UsersModal: React.FC = () => {
       dataIndex: "profileImage",
       key: "profile",
       render: (image) => <Avatar src={image} icon={!image && "👤"} size={48} />,
+      width: 100,
+      fixed: "left",
     },
     {
       title: "Full Name",
@@ -146,19 +142,16 @@ const UsersModal: React.FC = () => {
       title: "Email",
       dataIndex: "email",
       key: "email",
-      sorter: (a, b) => (a.email || "").localeCompare(b.email || ""),
     },
     {
       title: "Phone Number",
       dataIndex: "phoneNumber",
       key: "phoneNumber",
-      sorter: (a, b) => (a.phoneNumber || "").localeCompare(b.phoneNumber || ""),
     },
     {
       title: "Gender",
       dataIndex: "gender",
       key: "gender",
-      sorter: (a, b) => (a.gender || "").localeCompare(b.gender || ""),
       render: (gender: string) =>
         gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : "",
     },
@@ -166,12 +159,8 @@ const UsersModal: React.FC = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
-        <div className="flex gap-2">
-          <Button
-            type="primary"
-            size="small"
-            onClick={() => handleEdit(record)}
-          >
+        <div className="flex flex-wrap gap-2 justify-center">
+          <Button type="primary" size="small" onClick={() => handleEdit(record)}>
             Edit
           </Button>
           <Button danger size="small" onClick={() => handleDelete(record.id)}>
@@ -183,10 +172,12 @@ const UsersModal: React.FC = () => {
   ];
 
   return (
-    <div className="relative bg-white/40 backdrop-blur-sm rounded-2xl shadow-xl p-8 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900">All Users</h1>
+    <div className="relative bg-white/40 backdrop-blur-sm rounded-2xl shadow-xl p-4 sm:p-8 max-w-6xl mx-auto">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-900 text-center sm:text-left">
+        All Users
+      </h1>
 
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-center sm:justify-end mb-4">
         <Input
           placeholder="Search by name, email, or phone..."
           prefix={<SearchOutlined />}
@@ -195,7 +186,7 @@ const UsersModal: React.FC = () => {
             setSearchText(e.target.value);
             setPagination((prev) => ({ ...prev, current: 1 }));
           }}
-          className="w-80"
+          className="w-full sm:w-80 max-w-xs sm:max-w-none"
         />
       </div>
 
@@ -204,46 +195,41 @@ const UsersModal: React.FC = () => {
           <Spin size="large" />
         </div>
       ) : (
-        <Table<User>
-          dataSource={filteredUsers}
-          columns={columns}
-          rowKey="id"
-          pagination={{
-            ...pagination,
-            total: filteredUsers.length,
-            onChange: (page, pageSize) =>
-              setPagination({ current: page, pageSize }),
-          }}
-        />
+        <div className="overflow-x-auto">
+          <Table<User>
+            dataSource={filteredUsers}
+            columns={columns}
+            rowKey="id"
+            pagination={{
+              ...pagination,
+              total: filteredUsers.length,
+              onChange: (page, pageSize) => setPagination({ current: page, pageSize }),
+            }}
+            scroll={{ x: 800 }}
+          />
+        </div>
       )}
 
-      {/* ✅ Edit Modal */}
       <Modal
         title="Edit Profile"
         open={!!editingUser}
         onCancel={() => setEditingUser(null)}
         footer={null}
-        width={600}
+        width={window.innerWidth < 600 ? "90%" : 600}
+        centered
+        className="rounded-xl"
       >
         <div className="flex flex-col items-center mb-4">
-          <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden border border-gray-300 mb-2">
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-200 overflow-hidden border border-gray-300 mb-2">
             {profileImage ? (
-              <img
-                src={profileImage}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
+              <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-4xl text-gray-400">
                 👤
               </div>
             )}
           </div>
-          <Upload
-            beforeUpload={handleBeforeUpload}
-            showUploadList={false}
-            accept="image/*"
-          >
+          <Upload beforeUpload={handleBeforeUpload} showUploadList={false} accept="image/*">
             <Button icon={<UploadOutlined />}>Upload</Button>
           </Upload>
         </div>
@@ -265,7 +251,8 @@ const UsersModal: React.FC = () => {
               <Select.Option value="other">Other</Select.Option>
             </Select>
           </Form.Item>
-          <div className="flex gap-2">
+
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button type="primary" onClick={handleUpdate} className="flex-1">
               Save
             </Button>

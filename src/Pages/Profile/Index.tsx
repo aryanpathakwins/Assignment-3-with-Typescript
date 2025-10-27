@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, Input, Button, Select, message, Upload } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -7,17 +7,14 @@ import { updateUser, logout } from "../../Redux/useslice";
 import type { RcFile } from "antd/es/upload";
 import type { RootState, AppDispatch } from "../../Redux/store";
 
-
-
 const Index: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-
   const { currentUser } = useSelector((state: RootState) => state.user);
+
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
-  
   useEffect(() => {
     if (!currentUser) {
       message.error("No user logged in");
@@ -28,7 +25,7 @@ const Index: React.FC = () => {
     setProfileImage(currentUser.profileImage || null);
   }, [currentUser, form, navigate]);
 
-  // Convert file to base64 for image upload
+  // Convert file to base64
   const getBase64 = (file: RcFile): Promise<string | null> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -37,7 +34,6 @@ const Index: React.FC = () => {
       reader.onerror = (err) => reject(err);
     });
 
-  
   const handleBeforeUpload = async (file: RcFile) => {
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
@@ -63,7 +59,6 @@ const Index: React.FC = () => {
       message.error("Failed to upload image");
     }
 
-  
     return false;
   };
 
@@ -90,12 +85,16 @@ const Index: React.FC = () => {
   };
 
   return (
-    <main className="flex-1 p-8">
-      <div className="bg-white/40 backdrop-blur-sm rounded-2xl shadow-xl p-6 max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-gray-900">Edit Profile</h2>
+    <main className="flex justify-center items-center min-h-screen bg-gray-50 px-4 py-8">
+      <div className="bg-white/50 backdrop-blur-md rounded-2xl shadow-xl p-6 w-full max-w-lg sm:max-w-2xl">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-900">
+          Edit Profile
+        </h2>
+
+        {/* Profile Image */}
         <div className="flex justify-center mb-8">
           <div className="relative">
-            <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg overflow-hidden">
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg overflow-hidden">
               {profileImage ? (
                 <img
                   src={profileImage}
@@ -119,7 +118,7 @@ const Index: React.FC = () => {
                   shape="circle"
                   icon={<UploadOutlined />}
                   size="small"
-                  className="shadow-lg"
+                  className="shadow-md"
                 />
               </Upload>
             </div>
@@ -127,7 +126,11 @@ const Index: React.FC = () => {
         </div>
 
         {/* Form */}
-        <Form form={form} layout="vertical" className="space-y-6">
+        <Form
+          form={form}
+          layout="vertical"
+          className="space-y-4 sm:space-y-6 text-sm sm:text-base"
+        >
           <Form.Item label="Full Name" name="fullName">
             <Input placeholder="John Doe" />
           </Form.Item>
@@ -148,14 +151,20 @@ const Index: React.FC = () => {
             </Select>
           </Form.Item>
 
-          <div className="flex gap-4">
-            <Button type="primary" onClick={handleUpdate} className="flex-1">
-              Update Profile
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              type="primary"
+              onClick={handleUpdate}
+              className="flex-1"
+              block
+            >
+              Update
             </Button>
-            <Button type="default" onClick={handleCancel} className="flex-1">
+            <Button onClick={handleCancel} className="flex-1" block>
               Cancel
             </Button>
-            <Button danger onClick={handleLogout} className="flex-1">
+            <Button danger onClick={handleLogout} className="flex-1" block>
               Logout
             </Button>
           </div>
