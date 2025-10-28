@@ -79,7 +79,7 @@ export default function Signup() {
       <div className="flex w-full md:w-1/2 justify-center items-center p-6">
         <div className="w-full max-w-md px-8 py-10 bg-white rounded-xl shadow-lg md:shadow-none relative">
           {/* Header */}
-          <div className="flex flex-col items-center mb-6">
+          <div className="flex flex-col items-center mb-4">
             <img src="./logo1.jpg" className="w-12 h-12 mb-2" alt="Logo" />
             <h2 className="text-2xl font-semibold text-gray-800">Create Your Account</h2>
           </div>

@@ -11,7 +11,7 @@ const Profile: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { currentUser } = useSelector((state: RootState) => state.user);
 
-  // Redirect to login if no user is logged in
+  
   useEffect(() => {
     if (!currentUser) {
       message.error("No user logged in");

@@ -25,7 +25,7 @@ const Index: React.FC = () => {
     setProfileImage(currentUser.profileImage || null);
   }, [currentUser, form, navigate]);
 
-  // Convert file to base64
+  
   const getBase64 = (file: RcFile): Promise<string | null> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -91,7 +91,7 @@ const Index: React.FC = () => {
           Edit Profile
         </h2>
 
-        {/* Profile Image */}
+        
         <div className="flex justify-center mb-8">
           <div className="relative">
             <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg overflow-hidden">

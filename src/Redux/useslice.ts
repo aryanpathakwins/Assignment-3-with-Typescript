@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/tool
 
 const API_URL = "http://localhost:3000/users";
 
+// ------------------ Types ------------------
 export interface User {
   id: string;
   fullName?: string;
@@ -112,7 +113,7 @@ const userSlice = createSlice({
         state.error = action.error.message || "Failed to fetch users";
       })
 
-      // Signup user (✅ fixed: no auto-login)
+      // Signup user
       .addCase(signupUser.fulfilled, (state, action) => {
         state.users.push(action.payload);
       })
@@ -141,12 +142,20 @@ const userSlice = createSlice({
         localStorage.setItem("currentUser", JSON.stringify(action.payload));
       })
 
-      // Delete user
+      
       .addCase(deleteUser.fulfilled, (state, action) => {
-        state.users = state.users.filter((u) => u.id !== action.payload);
+        const deletedId = action.payload;
+        state.users = state.users.filter((u) => u.id !== deletedId);
+
+        
+        if (state.currentUser?.id === deletedId) {
+          state.currentUser = null;
+          localStorage.removeItem("currentUser");
+        }
       });
   },
 });
+
 
 export const { logout, setCurrentUser } = userSlice.actions;
 export default userSlice.reducer;

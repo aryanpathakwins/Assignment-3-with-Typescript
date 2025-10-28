@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import type { RootState, AppDispatch } from "../../Redux/store";
 import { fetchUsers, updateUser, deleteUser } from "../../Redux/useslice";
 import {
@@ -29,7 +30,11 @@ interface User {
 
 const UsersModal: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { users, loading, error } = useSelector((state: RootState) => state.user);
+  const navigate = useNavigate();
+
+  const { users, loading, error, currentUser } = useSelector(
+    (state: RootState) => state.user
+  );
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -43,14 +48,24 @@ const UsersModal: React.FC = () => {
     pageSizeOptions: [3, 5, 10, 20],
   });
 
+  // Fetch users on mount
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
+  // Handle API errors
   useEffect(() => {
     if (error) message.error("Failed to fetch users");
   }, [error]);
 
+  useEffect(() => {
+    if (!currentUser) {
+      message.info("You have been logged out");
+      navigate("/login", { replace: true });
+    }
+  }, [currentUser, navigate]);
+
+  // ------------------ CRUD Handlers ------------------
   const handleDelete = (id: string) => {
     dispatch(deleteUser(id))
       .unwrap()
@@ -107,11 +122,14 @@ const UsersModal: React.FC = () => {
       await dispatch(updateUser({ ...editingUser, ...values, profileImage })).unwrap();
       message.success("Profile updated successfully");
       setEditingUser(null);
+      form.resetFields();
+      setProfileImage(null);
     } catch (err: any) {
       message.error("Failed to update profile: " + err.message);
     }
   };
 
+  
   const filteredUsers = useMemo(() => {
     const term = searchText.toLowerCase();
     return users.filter(
@@ -122,6 +140,7 @@ const UsersModal: React.FC = () => {
         user.gender?.toLowerCase().includes(term)
     );
   }, [users, searchText]);
+
 
   const columns: ColumnsType<User> = [
     {
@@ -171,6 +190,7 @@ const UsersModal: React.FC = () => {
     },
   ];
 
+  
   return (
     <div className="relative bg-white/40 backdrop-blur-sm rounded-2xl shadow-xl p-4 sm:p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-900 text-center sm:text-left">
@@ -203,65 +223,76 @@ const UsersModal: React.FC = () => {
             pagination={{
               ...pagination,
               total: filteredUsers.length,
-              onChange: (page, pageSize) => setPagination({ current: page, pageSize }),
+              onChange: (page, pageSize) =>
+                setPagination({ current: page, pageSize }),
             }}
             scroll={{ x: 800 }}
           />
         </div>
       )}
 
-      <Modal
-        title="Edit Profile"
-        open={!!editingUser}
-        onCancel={() => setEditingUser(null)}
-        footer={null}
-        width={window.innerWidth < 600 ? "90%" : 600}
-        centered
-        className="rounded-xl"
-      >
-        <div className="flex flex-col items-center mb-4">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-200 overflow-hidden border border-gray-300 mb-2">
-            {profileImage ? (
-              <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-4xl text-gray-400">
-                👤
-              </div>
-            )}
+      {editingUser && (
+        <Modal
+          title="Edit Profile"
+          open={!!editingUser}
+          onCancel={() => setEditingUser(null)}
+          footer={null}
+          width={window.innerWidth < 600 ? "90%" : 600}
+          centered
+          className="rounded-xl"
+        >
+          <div className="flex flex-col items-center mb-4">
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-200 overflow-hidden border border-gray-300 mb-2">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-4xl text-gray-400">
+                  👤
+                </div>
+              )}
+            </div>
+            <Upload
+              beforeUpload={handleBeforeUpload}
+              showUploadList={false}
+              accept="image/*"
+            >
+              <Button icon={<UploadOutlined />}>Upload</Button>
+            </Upload>
           </div>
-          <Upload beforeUpload={handleBeforeUpload} showUploadList={false} accept="image/*">
-            <Button icon={<UploadOutlined />}>Upload</Button>
-          </Upload>
-        </div>
 
-        <Form form={form} layout="vertical" className="space-y-4">
-          <Form.Item label="Full Name" name="fullName">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Email" name="email">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Phone Number" name="phoneNumber">
-            <Input maxLength={10} />
-          </Form.Item>
-          <Form.Item label="Gender" name="gender">
-            <Select>
-              <Select.Option value="male">Male</Select.Option>
-              <Select.Option value="female">Female</Select.Option>
-              <Select.Option value="other">Other</Select.Option>
-            </Select>
-          </Form.Item>
+          <Form form={form} layout="vertical" className="space-y-4">
+            <Form.Item label="Full Name" name="fullName">
+              <Input />
+            </Form.Item>
+            <Form.Item label="Email" name="email">
+              <Input />
+            </Form.Item>
+            <Form.Item label="Phone Number" name="phoneNumber">
+              <Input maxLength={10} />
+            </Form.Item>
+            <Form.Item label="Gender" name="gender">
+              <Select>
+                <Select.Option value="male">Male</Select.Option>
+                <Select.Option value="female">Female</Select.Option>
+                <Select.Option value="other">Other</Select.Option>
+              </Select>
+            </Form.Item>
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button type="primary" onClick={handleUpdate} className="flex-1">
-              Save
-            </Button>
-            <Button onClick={() => setEditingUser(null)} className="flex-1">
-              Cancel
-            </Button>
-          </div>
-        </Form>
-      </Modal>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button type="primary" onClick={handleUpdate} className="flex-1">
+                Save
+              </Button>
+              <Button onClick={() => setEditingUser(null)} className="flex-1">
+                Cancel
+              </Button>
+            </div>
+          </Form>
+        </Modal>
+      )}
     </div>
   );
 };
