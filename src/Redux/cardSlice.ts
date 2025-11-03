@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type CardType from "../types/CardTypes";
 
-const API_URL = "http://localhost:3000/cards"; // ✅ Corrected Port
+const API_URL = "http://localhost:3000/cards"; 
 
 interface CardState {
   cards: CardType[];
@@ -35,7 +35,7 @@ export const addCard = createAsyncThunk<CardType, Omit<CardType, "id">>(
       body: JSON.stringify(newCard),
     });
     if (!res.ok) throw new Error("Failed to add card");
-    return await res.json(); // ✅ Return saved card from backend
+    return await res.json(); 
   }
 );
 

@@ -12,7 +12,6 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { currentUser } = useSelector((state: RootState) => state.user);
-
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,7 +24,7 @@ const Index: React.FC = () => {
     setProfileImage(currentUser.profileImage || null);
   }, [currentUser, form, navigate]);
 
-  
+  // ---------- Image Upload Helpers ----------
   const getBase64 = (file: RcFile): Promise<string | null> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -62,6 +61,7 @@ const Index: React.FC = () => {
     return false;
   };
 
+  // ---------- Update ----------
   const handleUpdate = async () => {
     if (!currentUser) return;
     const values = form.getFieldsValue();
@@ -75,15 +75,14 @@ const Index: React.FC = () => {
     }
   };
 
-  const handleCancel = () => {
-    navigate(-1);
-  };
-
+  // ---------- Cancel / Logout ----------
+  const handleCancel = () => navigate(-1);
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
   };
 
+  // ---------- JSX ----------
   return (
     <main className="flex justify-center items-center min-h-screen bg-gray-50 px-4 py-8">
       <div className="bg-white/50 backdrop-blur-md rounded-2xl shadow-xl p-6 w-full max-w-lg sm:max-w-2xl">
@@ -91,16 +90,12 @@ const Index: React.FC = () => {
           Edit Profile
         </h2>
 
-        
+        {/* Profile Image */}
         <div className="flex justify-center mb-8">
           <div className="relative">
             <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white shadow-lg overflow-hidden">
               {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
+                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
                   <div className="text-4xl text-gray-400">👤</div>
@@ -108,11 +103,7 @@ const Index: React.FC = () => {
               )}
             </div>
             <div className="absolute bottom-2 right-2">
-              <Upload
-                beforeUpload={handleBeforeUpload}
-                showUploadList={false}
-                accept="image/*"
-              >
+              <Upload beforeUpload={handleBeforeUpload} showUploadList={false} accept="image/*">
                 <Button
                   type="primary"
                   shape="circle"
@@ -151,14 +142,37 @@ const Index: React.FC = () => {
             </Select>
           </Form.Item>
 
+          {/* ✅ Address Fields */}
+          <Form.Item label="Address Line 1" name="address1">
+            <Input placeholder="123 Main Street" />
+          </Form.Item>
+
+          <Form.Item label="Address Line 2" name="address2">
+            <Input placeholder="Apartment, suite, etc." />
+          </Form.Item>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Form.Item label="City" name="city">
+              <Input placeholder="City" />
+            </Form.Item>
+
+            <Form.Item label="State" name="state">
+              <Input placeholder="State" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Form.Item label="Zip" name="zip">
+              <Input placeholder="123456" />
+            </Form.Item>
+            <Form.Item label="Country" name="country" className="sm:col-span-2">
+              <Input placeholder="Country" />
+            </Form.Item>
+          </div>
+
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              type="primary"
-              onClick={handleUpdate}
-              className="flex-1"
-              block
-            >
+            <Button type="primary" onClick={handleUpdate} className="flex-1" block>
               Update
             </Button>
             <Button onClick={handleCancel} className="flex-1" block>

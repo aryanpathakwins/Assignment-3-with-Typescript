@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebaar"; 
-import Footer from "./Footer";
 
 const Wrapper: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
@@ -23,7 +22,7 @@ const Wrapper: React.FC = () => {
       </div>
 
       {/* FOOTER */}
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 };
