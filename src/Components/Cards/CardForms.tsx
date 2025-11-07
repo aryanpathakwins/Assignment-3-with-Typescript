@@ -39,8 +39,9 @@ const generateId = (): string =>
 const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [form] = Form.useForm();
-  const [image, setImage] = useState<string>("");
-  const [imageName, setImageName] = useState<string>("");
+
+  // ✅ Support up to 4 images
+  const [images, setImages] = useState<string[]>(["", "", "", ""]);
 
   useEffect(() => {
     if (editingCard) {
@@ -60,22 +61,30 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
         zip: editingCard.zip,
         country: editingCard.country,
       });
-      setImage(editingCard.image || "");
+      setImages(editingCard.images?.length ? editingCard.images : [editingCard.image || "", "", "", ""]);
     } else {
       form.resetFields();
-      setImage("");
-      setImageName("");
+      setImages(["", "", "", ""]);
     }
   }, [editingCard, form]);
 
-  const handleImageUpload = (file: File) => {
+  // ✅ Handle upload per image slot
+  const handleImageUpload = (file: File, index: number) => {
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImage(reader.result as string);
-      setImageName(file.name);
+      const newImages = [...images];
+      newImages[index] = reader.result as string;
+      setImages(newImages);
     };
     reader.readAsDataURL(file);
     return false;
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = [...images];
+    newImages[index] = "";
+    setImages(newImages);
+    message.info(`Image ${index + 1} removed`);
   };
 
   const handleSubmit = (values: any) => {
@@ -98,6 +107,8 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
       return;
     }
 
+    const filteredImages = images.filter(Boolean); // Remove empty slots
+
     const newCard: CardType = {
       id: editingCard ? editingCard.id : generateId(),
       title,
@@ -116,8 +127,10 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
       state,
       zip,
       country,
-      image,
+      image: filteredImages[0] || "", // Keep for backward support
+      images: filteredImages, // ✅ full array of images
       postalCode: "",
+      stock: 0,
     };
 
     if (editingCard) {
@@ -129,12 +142,6 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
     }
 
     onClose();
-  };
-
-  const handleRemoveImage = () => {
-    setImage("");
-    setImageName("");
-    message.info("Image removed");
   };
 
   return (
@@ -169,38 +176,44 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
       >
         {/* Left Section */}
         <div className="space-y-6">
-          {/* Image Upload */}
+          {/* ✅ Multiple Image Upload */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
-            <Form.Item label="Product Image" className="w-full">
-              {image ? (
-                <div className="relative w-32 h-32 mx-auto mb-3 group">
-                  <img
-                    src={image}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-xl border shadow-sm group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <CloseCircleOutlined
-                    onClick={handleRemoveImage}
-                    className="absolute -top-2 -right-2 text-red-500 bg-white rounded-full text-lg cursor-pointer hover:scale-110 transition-transform"
-                  />
-                </div>
-              ) : (
-                <Upload
-                  beforeUpload={handleImageUpload}
-                  showUploadList={false}
-                  accept="image/*"
-                >
-                  <Button
-                    icon={<UploadOutlined />}
-                    className="rounded-lg bg-blue-50 hover:bg-blue-500 hover:text-white transition-all duration-300"
+            <Form.Item label="Product Images (up to 4)" className="w-full">
+              <div className="grid grid-cols-2 gap-4">
+                {images.map((img, index) => (
+                  <div
+                    key={index}
+                    className="relative border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center h-40"
                   >
-                    Upload Image
-                  </Button>
-                </Upload>
-              )}
-              {imageName && (
-                <p className="text-gray-500 mt-2 text-sm">{imageName}</p>
-              )}
+                    {img ? (
+                      <>
+                        <img
+                          src={img}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-28 object-cover rounded-md"
+                        />
+                        <CloseCircleOutlined
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-2 right-2 text-red-500 bg-white rounded-full text-lg cursor-pointer hover:scale-110 transition-transform"
+                        />
+                      </>
+                    ) : (
+                      <Upload
+                        beforeUpload={(file) => handleImageUpload(file, index)}
+                        showUploadList={false}
+                        accept="image/*"
+                      >
+                        <Button
+                          icon={<UploadOutlined />}
+                          className="rounded-lg bg-blue-50 hover:bg-blue-500 hover:text-white transition-all duration-300"
+                        >
+                          Upload {index + 1}
+                        </Button>
+                      </Upload>
+                    )}
+                  </div>
+                ))}
+              </div>
             </Form.Item>
           </div>
 
@@ -226,9 +239,8 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
           </div>
         </div>
 
-        {/* Right Section */}
+        {/* Right Section (same as before) */}
         <div className="space-y-6">
-          {/* Product Details */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
             <h3 className="font-semibold text-gray-800 mb-4 text-lg">
               🛍️ Product Details
@@ -254,11 +266,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="price"
                   rules={[{ required: true, message: "Enter price!" }]}
                 >
-                  <InputNumber
-                    className="w-full rounded-lg"
-                    min={0}
-                    placeholder="Price"
-                  />
+                  <InputNumber className="w-full rounded-lg" min={0} placeholder="Price" />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -267,11 +275,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="quantity"
                   rules={[{ required: true, message: "Enter quantity!" }]}
                 >
-                  <InputNumber
-                    className="w-full rounded-lg"
-                    min={1}
-                    placeholder="Quantity"
-                  />
+                  <InputNumber className="w-full rounded-lg" min={1} placeholder="Quantity" />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -290,11 +294,9 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
             </Row>
           </div>
 
-          {/* Address */}
+          {/* Address Section */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
-            <h3 className="font-semibold text-gray-800 mb-4 text-lg">
-              📍 Address
-            </h3>
+            <h3 className="font-semibold text-gray-800 mb-4 text-lg">📍 Address</h3>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item

@@ -1,6 +1,7 @@
 type ValueType = string | number;
 
 export default interface CardType {
+  status: string;
   postalCode: ValueType;
   id: string;
   title: string;
@@ -10,6 +11,8 @@ export default interface CardType {
   availabilityFrom?: string;
   availabilityTo?: string;
   image?: string;
+  stock: number;
+  images?: string[];
 
   // 🏠 Structured Address Fields
   address1?: string;

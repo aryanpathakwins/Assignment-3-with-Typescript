@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../../Redux/store";
 import { fetchCards, deleteCard, updateCard } from "../../Redux/cardSlice";
 import { fetchUsers, updateUser } from "../../Redux/useslice";
+import { addToCart } from "../../Redux/cartSlice";
 import CardForm from "./CardForms";
 import type CardType from "../../types/CardTypes";
 import { Modal, Select, InputNumber, message, Button } from "antd";
@@ -22,6 +23,12 @@ const CardList: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [buyModalVisible, setBuyModalVisible] = useState(false);
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
+
+  // ✅ New states for Add-to-Cart modal
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [cartProduct, setCartProduct] = useState<CardType | null>(null);
+  const [cartQuantity, setCartQuantity] = useState<number>(1);
+
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [postalCode, setPostalCode] = useState<string>("");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
@@ -65,6 +72,44 @@ const CardList: React.FC = () => {
     }
   };
 
+  // ✅ Updated handleAddToCart to open modal
+  const handleAddToCart = (card: CardType) => {
+    if (card.quantity <= 0) {
+      message.warning("Out of stock! Cannot add to cart.");
+      return;
+    }
+    setCartProduct(card);
+    setCartQuantity(1);
+    setCartModalVisible(true);
+  };
+
+  // ✅ Confirm Add to Cart
+  const handleConfirmAddToCart = () => {
+    if (!cartProduct) return;
+    if (cartQuantity <= 0) return message.warning("Enter valid quantity.");
+    if (cartQuantity > cartProduct.quantity)
+      return message.warning(`Only ${cartProduct.quantity} in stock.`);
+
+    const cartItem = {
+      id: cartProduct.id,
+      name: cartProduct.title || "Untitled",
+      title: cartProduct.title,
+      description: cartProduct.description,
+      price: cartProduct.price,
+      image: cartProduct.image,
+      quantity: cartQuantity,
+      stock: cartProduct.quantity,
+    };
+
+    dispatch(addToCart(cartItem));
+    message.success(`Added ${cartQuantity} × "${cartProduct.title}" to cart.`);
+
+    // ✅ Auto-close & reset
+    setCartModalVisible(false);
+    setCartProduct(null);
+    setCartQuantity(1);
+  };
+
   const handleBuy = () => {
     if (!selectedUserId || !postalCode || !selectedProductId) {
       message.warning("Please select user, postal code, and product.");
@@ -81,70 +126,63 @@ const CardList: React.FC = () => {
     setReceiptModalVisible(true);
   };
 
- const handleConfirmBuy = async () => {
-  const product = cards.find((c) => c.id === selectedProductId);
-  const user = users.find((u) => u.id === selectedUserId);
-  if (!product || !user) return;
+  const handleConfirmBuy = async () => {
+    const product = cards.find((c) => c.id === selectedProductId);
+    const user = users.find((u) => u.id === selectedUserId);
+    if (!product || !user) return;
 
-  // prevent double purchase if product stock is already 0
-  if (product.quantity <= 0) {
-    message.warning("This product is out of stock!");
-    return;
-  }
+    if (product.quantity <= 0) {
+      message.warning("This product is out of stock!");
+      return;
+    }
 
-  // Decrease product quantity
-  const updatedCard = {
-    ...product,
-    quantity: product.quantity - purchaseQuantity,
-  };
-  await dispatch(updateCard(updatedCard));
+    const updatedCard = {
+      ...product,
+      quantity: product.quantity - purchaseQuantity,
+    };
+    await dispatch(updateCard(updatedCard));
 
-  // Handle user purchase update
-  const existingPurchases = user.purchasedProducts || [];
-  const existingProductIndex = existingPurchases.findIndex(
-    (p) => p.productId === product.id
-  );
-
-  let updatedPurchases;
-  if (existingProductIndex >= 0) {
-    
-    updatedPurchases = existingPurchases.map((p, index) =>
-      index === existingProductIndex
-        ? { ...p, quantity: p.quantity + purchaseQuantity }
-        : p
+    const existingPurchases = user.purchasedProducts || [];
+    const existingProductIndex = existingPurchases.findIndex(
+      (p) => p.productId === product.id
     );
-  } else {
-    updatedPurchases = [
-      ...existingPurchases,
-      {
-        productId: product.id,
-        productName: product.title,
-        quantity: purchaseQuantity,
-        price: product.price,
-      },
-    ];
-  }
 
-  // Update user record
-  const updatedUser = {
-    ...user,
-    purchasedProducts: updatedPurchases,
+    let updatedPurchases;
+    if (existingProductIndex >= 0) {
+      updatedPurchases = existingPurchases.map((p, index) =>
+        index === existingProductIndex
+          ? { ...p, quantity: p.quantity + purchaseQuantity }
+          : p
+      );
+    } else {
+      updatedPurchases = [
+        ...existingPurchases,
+        {
+          productId: product.id,
+          productName: product.title,
+          quantity: purchaseQuantity,
+          price: product.price,
+        },
+      ];
+    }
+
+    const updatedUser = {
+      ...user,
+      purchasedProducts: updatedPurchases,
+    };
+    await dispatch(updateUser(updatedUser));
+
+    message.success(
+      `${user.fullName} purchased ${purchaseQuantity} × "${product.title}" successfully!`
+    );
+
+    setReceiptModalVisible(false);
+    setBuyModalVisible(false);
+    setSelectedUserId("");
+    setPostalCode("");
+    setSelectedProductId("");
+    setPurchaseQuantity(1);
   };
-  await dispatch(updateUser(updatedUser));
-
-  message.success(
-    `${user.fullName} purchased ${purchaseQuantity} × "${product.title}" successfully!`
-  );
-
-  // Reset modal state
-  setReceiptModalVisible(false);
-  setBuyModalVisible(false);
-  setSelectedUserId("");
-  setPostalCode("");
-  setSelectedProductId("");
-  setPurchaseQuantity(1);
-};
-
 
   const formatAddress = (user: any) => {
     if (!user) return "—";
@@ -168,7 +206,7 @@ const CardList: React.FC = () => {
     <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
-        <h2 className="text-3xl font-bold text-gray-800">🛍️ Product Management</h2>
+        <h2 className="text-3xl font-bold text-gray-800">🛍️ Products</h2>
         <button
           onClick={handleAddCard}
           className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium hover:opacity-90 transition-all shadow-md hover:shadow-lg cursor-pointer"
@@ -187,7 +225,6 @@ const CardList: React.FC = () => {
               key={card.id}
               className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex flex-col relative"
             >
-              {/* Image with overlay icons */}
               <div className="relative cursor-pointer">
                 {card.image ? (
                   <img
@@ -201,7 +238,6 @@ const CardList: React.FC = () => {
                   </div>
                 )}
 
-                {/* Floating edit & delete icons */}
                 <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleEditCard(card)}
@@ -223,7 +259,6 @@ const CardList: React.FC = () => {
                 </div>
               </div>
 
-              {/* Card content */}
               <div className="p-5 flex flex-col flex-grow">
                 <h3
                   className="text-lg font-semibold text-gray-900 mb-1 truncate cursor-pointer"
@@ -244,7 +279,7 @@ const CardList: React.FC = () => {
                   </p>
                   <p>
                     <strong>📦 Stock:</strong>{" "}
-                    {card.quantity > 0 ? card.quantity : "N/A"}
+                    {card.quantity > 0 ? card.quantity : "Out of Stock"}
                   </p>
                   {(card.city || card.state || card.country) && (
                     <div className="mt-2 text-gray-600 text-xs border-t pt-2">
@@ -257,22 +292,85 @@ const CardList: React.FC = () => {
                   )}
                 </div>
 
-                <button
-                  onClick={() => {
-                    setBuyModalVisible(true);
-                    setSelectedProductId("");
-                    setPostalCode("");
-                    setPurchaseQuantity(1);
-                  }}
-                  className="mt-5 flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md bg-green-600 text-white font-medium hover:bg-green-700 transition-all w-full cursor-pointer"
-                >
-                  <ShoppingCartOutlined /> Buy
-                </button>
+                {/* ✅ Buttons Section */}
+                <div className="mt-5 flex gap-2">
+                  {card.quantity > 0 ? (
+                    <>
+                      <button
+                        onClick={() => handleAddToCart(card)}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all cursor-pointer"
+                      >
+                        <ShoppingCartOutlined /> Add to Cart
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setBuyModalVisible(true);
+                          setSelectedProductId("");
+                          setPostalCode("");
+                          setPurchaseQuantity(1);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md bg-green-600 text-white font-medium hover:bg-green-700 transition-all cursor-pointer"
+                      >
+                        Buy
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full px-4 py-2 text-sm rounded-md bg-gray-400 text-white font-medium cursor-not-allowed"
+                    >
+                      Out of Stock
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* ✅ Add-to-Cart Quantity Modal */}
+      <Modal
+        open={cartModalVisible}
+        onCancel={() => setCartModalVisible(false)}
+        footer={null}
+        title="🛒 Add to Cart"
+        centered
+      >
+        {cartProduct && (
+          <div className="space-y-3 text-gray-700 text-sm">
+            <p>
+              <strong>📦 Product:</strong> {cartProduct.title}
+            </p>
+            <p>
+              <strong>💰 Price:</strong> ${cartProduct.price}
+            </p>
+            <p>
+              <strong>Available Stock:</strong> {cartProduct.quantity}
+            </p>
+
+            <label className="block text-gray-700 font-medium mb-1">
+              Quantity
+            </label>
+            <InputNumber
+              min={1}
+              max={cartProduct.quantity}
+              value={cartQuantity}
+              onChange={(value) => setCartQuantity(value || 1)}
+              className="w-full"
+            />
+
+            <Button
+              type="primary"
+              onClick={handleConfirmAddToCart}
+              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 h-10 font-semibold cursor-pointer"
+            >
+              Confirm Add to Cart
+            </Button>
+          </div>
+        )}
+      </Modal>
 
       {/* Buy Modal */}
       <Modal
@@ -323,7 +421,8 @@ const CardList: React.FC = () => {
         {selectedProduct && (
           <div className="mt-2 mb-5">
             <label className="block text-gray-700 font-medium mb-1">
-              Quantity (Available: {selectedProduct.quantity > 0 ? selectedProduct.quantity : "N/A"})
+              Quantity (Available:{" "}
+              {selectedProduct.quantity > 0 ? selectedProduct.quantity : "N/A"})
             </label>
             <InputNumber
               min={1}

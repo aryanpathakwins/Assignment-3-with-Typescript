@@ -5,6 +5,7 @@ import {
   CloseOutlined,
   UserOutlined,
   AppstoreOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 
 const Sidebar: React.FC = () => {
@@ -14,6 +15,7 @@ const Sidebar: React.FC = () => {
   const links = [
     { name: "Users", path: "/users", icon: <UserOutlined /> },
     { name: "Products", path: "/cards", icon: <AppstoreOutlined /> },
+    { name: "Cart", path: "/cart", icon: <ShoppingCartOutlined /> }, // 🛒 New Cart Option
   ];
 
   return (
@@ -32,17 +34,12 @@ const Sidebar: React.FC = () => {
       {/* 🔹 Sidebar */}
       <aside
         className={`fixed lg:static top-0 left-0 h-full lg:h-screen w-64 
-        bg-gradient-to-b from-indigo-600/90 to-blue-500/90 text-white 
+        bg-gradient-to-b from-sky-500/90 to-sky-500/90 text-white 
         shadow-2xl backdrop-blur-md flex flex-col justify-between 
         transform ${isOpen ? "translate-x-0" : "-translate-x-full"} 
         lg:translate-x-0 transition-transform duration-300 ease-in-out 
         z-50`}
       >
-        {/* Logo / Title */}
-        {/* <div className="flex items-center justify-center py-6 border-b border-white/20">
-          <h1 className="text-2xl font-bold tracking-wide">My Admin</h1>
-        </div> */}
-
         {/* Navigation Links */}
         <ul className="flex-1 px-4 mt-6 space-y-2 overflow-y-auto">
           {links.map((link) => {

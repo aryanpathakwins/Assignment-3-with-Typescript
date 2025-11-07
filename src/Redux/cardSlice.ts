@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import type CardType from "../types/CardTypes";
 
-const API_URL = "http://localhost:3000/cards"; 
+const API_URL = "http://localhost:3000/cards";
 
 interface CardState {
   cards: CardType[];
@@ -15,15 +15,12 @@ const initialState: CardState = {
   error: null,
 };
 
-// ---- Thunks ----
-export const fetchCards = createAsyncThunk<CardType[]>(
-  "cards/fetchCards",
-  async () => {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error("Failed to fetch cards");
-    return await res.json();
-  }
-);
+
+export const fetchCards = createAsyncThunk<CardType[]>("cards/fetchCards", async () => {
+  const res = await fetch(API_URL);
+  if (!res.ok) throw new Error("Failed to fetch cards");
+  return await res.json();
+});
 
 export const addCard = createAsyncThunk<CardType, Omit<CardType, "id">>(
   "cards/addCard",
@@ -35,7 +32,7 @@ export const addCard = createAsyncThunk<CardType, Omit<CardType, "id">>(
       body: JSON.stringify(newCard),
     });
     if (!res.ok) throw new Error("Failed to add card");
-    return await res.json(); 
+    return await res.json();
   }
 );
 
@@ -48,24 +45,53 @@ export const updateCard = createAsyncThunk<CardType, CardType>(
       body: JSON.stringify(card),
     });
     if (!res.ok) throw new Error("Failed to update card");
-    return await res.json(); // ✅ Return updated card
+    return await res.json();
   }
 );
 
-export const deleteCard = createAsyncThunk<string, string>(
-  "cards/deleteCard",
-  async (id) => {
-    const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
-    if (!res.ok) throw new Error("Failed to delete card");
-    return id;
-  }
-);
+export const deleteCard = createAsyncThunk<string, string>("cards/deleteCard", async (id) => {
+  const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete card");
+  return id;
+});
+
+// ✅ Updated thunk: use `quantity` instead of `stock`
+export const updateStockAfterPurchase = createAsyncThunk<
+  void,
+  { id: string; quantityPurchased: number }
+>("cards/updateStockAfterPurchase", async ({ id, quantityPurchased }, thunkAPI) => {
+  const state = (thunkAPI.getState() as { cards: CardState }).cards;
+  const card = state.cards.find((c) => c.id === id);
+  if (!card) return;
+
+  const newQuantity = Math.max((card.quantity || 0) - quantityPurchased, 0);
+  const updatedCard = { ...card, quantity: newQuantity };
+
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updatedCard),
+  });
+
+  if (!res.ok) throw new Error("Failed to update quantity");
+});
 
 // ---- Slice ----
 const cardSlice = createSlice({
   name: "cards",
   initialState,
-  reducers: {},
+  reducers: {
+    updateStockLocally: (
+      state,
+      action: PayloadAction<{ id: string; quantityPurchased: number }>
+    ) => {
+      const { id, quantityPurchased } = action.payload;
+      const card = state.cards.find((c) => c.id === id);
+      if (card) {
+        card.quantity = Math.max((card.quantity || 0) - quantityPurchased, 0);
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCards.pending, (state) => {
@@ -93,4 +119,5 @@ const cardSlice = createSlice({
   },
 });
 
+export const { updateStockLocally } = cardSlice.actions;
 export default cardSlice.reducer;

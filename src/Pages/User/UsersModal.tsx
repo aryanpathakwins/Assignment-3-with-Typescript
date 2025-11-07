@@ -64,7 +64,7 @@ interface User {
   }[];
 }
 
-// ---------- Component ----------
+
 const { Title, Text } = Typography;
 
 const UsersModal: React.FC = () => {
@@ -698,7 +698,7 @@ const UsersModal: React.FC = () => {
             </div>
             <div className="flex justify-between text-base font-semibold mt-2">
               <span>Total Amount:</span>
-              <span>₹{computeReceiptTotals(receiptUser).totalAmount}</span>
+              <span>${computeReceiptTotals(receiptUser).totalAmount}</span>
             </div>
 
             <Divider />

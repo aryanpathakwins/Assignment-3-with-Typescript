@@ -7,6 +7,7 @@ import Profile from "../Profile";
 import Webpage from "../Webpage";
 import UsersModal from "../Pages/User/UsersModal";
 import CardsPage from "../Pages/Card/CardPage"; // ✅ new
+import CartPage from "../Pages/Cart/CartPage";
 
 const routes: RouteObject[] = [
   {
@@ -26,6 +27,7 @@ const routes: RouteObject[] = [
       { path: "cards", element: <CardsPage /> }, // ✅ new
       { path: "profile", element: <Profile /> },
       { path: "webpage", element: <Webpage /> },
+      { path: "cart", element: <CartPage /> },
     ],
   },
 ];
