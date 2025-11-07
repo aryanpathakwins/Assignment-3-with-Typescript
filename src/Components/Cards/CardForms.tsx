@@ -131,6 +131,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
       images: filteredImages, // ✅ full array of images
       postalCode: "",
       stock: 0,
+      status: ""
     };
 
     if (editingCard) {
