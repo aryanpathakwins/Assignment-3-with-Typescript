@@ -18,6 +18,7 @@ import {
   CloseCircleOutlined,
   CalendarOutlined,
   InfoCircleOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../Redux/store";
@@ -27,6 +28,7 @@ import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+const { Dragger } = Upload;
 
 interface CardFormProps {
   editingCard?: CardType | null;
@@ -39,10 +41,9 @@ const generateId = (): string =>
 const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [form] = Form.useForm();
-
-  // ✅ Support up to 4 images
   const [images, setImages] = useState<string[]>(["", "", "", ""]);
 
+  // ✅ Preload data if editing
   useEffect(() => {
     if (editingCard) {
       form.setFieldsValue({
@@ -61,14 +62,18 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
         zip: editingCard.zip,
         country: editingCard.country,
       });
-      setImages(editingCard.images?.length ? editingCard.images : [editingCard.image || "", "", "", ""]);
+      setImages(
+        editingCard.images?.length
+          ? [...editingCard.images, "", "", "", ""].slice(0, 4)
+          : [editingCard.image || "", "", "", ""]
+      );
     } else {
       form.resetFields();
       setImages(["", "", "", ""]);
     }
   }, [editingCard, form]);
 
-  // ✅ Handle upload per image slot
+  // ✅ Handle per-image upload
   const handleImageUpload = (file: File, index: number) => {
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -107,7 +112,11 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
       return;
     }
 
-    const filteredImages = images.filter(Boolean); // Remove empty slots
+    const filteredImages = images.filter(Boolean);
+    if (filteredImages.length === 0) {
+      message.error("Please upload at least one product image!");
+      return;
+    }
 
     const newCard: CardType = {
       id: editingCard ? editingCard.id : generateId(),
@@ -127,11 +136,11 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
       state,
       zip,
       country,
-      image: filteredImages[0] || "", // Keep for backward support
-      images: filteredImages, // ✅ full array of images
+      image: filteredImages[0],
+      images: filteredImages,
       postalCode: "",
       stock: 0,
-      status: ""
+      status: "",
     };
 
     if (editingCard) {
@@ -152,7 +161,6 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
       footer={null}
       centered
       width="85%"
-      className="no-scroll-modal"
       title={
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-gray-800 tracking-tight">
@@ -166,7 +174,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
           "linear-gradient(135deg, rgba(240,245,255,0.8) 0%, rgba(255,255,255,1) 100%)",
         borderRadius: "16px",
         maxHeight: "90vh",
-        overflow: "hidden",
+        overflow: "auto",
       }}
     >
       <Form
@@ -175,11 +183,15 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
         onFinish={handleSubmit}
         className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-full"
       >
-        {/* Left Section */}
+        {/* LEFT SECTION */}
         <div className="space-y-6">
-          {/* ✅ Multiple Image Upload */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
-            <Form.Item label="Product Images (up to 4)" className="w-full">
+          {/* ✅ 4 Image Upload Grid */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100">
+            <Form.Item
+              label="Product Images (up to 4)"
+              required
+              className="font-medium text-gray-700"
+            >
               <div className="grid grid-cols-2 gap-4">
                 {images.map((img, index) => (
                   <div
@@ -199,18 +211,22 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                         />
                       </>
                     ) : (
-                      <Upload
-                        beforeUpload={(file) => handleImageUpload(file, index)}
+                      <Dragger
+                        beforeUpload={(file) =>
+                          handleImageUpload(file, index)
+                        }
                         showUploadList={false}
                         accept="image/*"
+                        multiple={false}
+                        className="h-full w-full border-dashed border-2 border-gray-300 hover:border-blue-500 bg-blue-50/40 rounded-xl"
                       >
-                        <Button
-                          icon={<UploadOutlined />}
-                          className="rounded-lg bg-blue-50 hover:bg-blue-500 hover:text-white transition-all duration-300"
-                        >
-                          Upload {index + 1}
-                        </Button>
-                      </Upload>
+                        <p className="ant-upload-drag-icon">
+                          <InboxOutlined className="text-blue-500 text-2xl" />
+                        </p>
+                        <p className="ant-upload-text text-gray-600">
+                          Click or Drag Image {index + 1}
+                        </p>
+                      </Dragger>
                     )}
                   </div>
                 ))}
@@ -218,13 +234,13 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
             </Form.Item>
           </div>
 
-          {/* Description */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
+          {/* DESCRIPTION */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100">
             <Form.Item
               label={
                 <span className="flex items-center gap-1 text-gray-700 font-medium">
                   Description
-                  <Tooltip title="Give a short but catchy product description.">
+                  <Tooltip title="Add a short and catchy product description.">
                     <InfoCircleOutlined />
                   </Tooltip>
                 </span>
@@ -240,9 +256,10 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
           </div>
         </div>
 
-        {/* Right Section (same as before) */}
+        {/* RIGHT SECTION */}
         <div className="space-y-6">
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
+          {/* PRODUCT DETAILS */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100">
             <h3 className="font-semibold text-gray-800 mb-4 text-lg">
               🛍️ Product Details
             </h3>
@@ -251,12 +268,11 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                 <Form.Item
                   label="Product Title"
                   name="title"
-                  rules={[{ required: true, message: "Please enter product title!" }]}
+                  rules={[
+                    { required: true, message: "Please enter product title!" },
+                  ]}
                 >
-                  <Input
-                    placeholder="Enter product title"
-                    className="rounded-lg focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-                  />
+                  <Input placeholder="Enter product title" />
                 </Form.Item>
               </Col>
             </Row>
@@ -267,7 +283,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="price"
                   rules={[{ required: true, message: "Enter price!" }]}
                 >
-                  <InputNumber className="w-full rounded-lg" min={0} placeholder="Price" />
+                  <InputNumber className="w-full" min={0} placeholder="Price" />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -276,7 +292,11 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="quantity"
                   rules={[{ required: true, message: "Enter quantity!" }]}
                 >
-                  <InputNumber className="w-full rounded-lg" min={1} placeholder="Quantity" />
+                  <InputNumber
+                    className="w-full"
+                    min={1}
+                    placeholder="Quantity"
+                  />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -286,7 +306,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   rules={[{ required: true, message: "Select availability!" }]}
                 >
                   <RangePicker
-                    className="w-full rounded-lg"
+                    className="w-full"
                     suffixIcon={<CalendarOutlined />}
                     format="YYYY-MM-DD"
                   />
@@ -295,8 +315,8 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
             </Row>
           </div>
 
-          {/* Address Section */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300">
+          {/* ADDRESS */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-md border border-gray-100">
             <h3 className="font-semibold text-gray-800 mb-4 text-lg">📍 Address</h3>
             <Row gutter={16}>
               <Col span={12}>
@@ -305,12 +325,12 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="address1"
                   rules={[{ required: true, message: "Enter Address Line 1" }]}
                 >
-                  <Input placeholder="House No, Street" className="rounded-lg" />
+                  <Input placeholder="House No, Street" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item label="Address Line 2" name="address2">
-                  <Input placeholder="Landmark (optional)" className="rounded-lg" />
+                  <Input placeholder="Landmark (optional)" />
                 </Form.Item>
               </Col>
             </Row>
@@ -322,7 +342,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="city"
                   rules={[{ required: true, message: "Enter City" }]}
                 >
-                  <Input placeholder="City" className="rounded-lg" />
+                  <Input placeholder="City" />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -331,7 +351,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="state"
                   rules={[{ required: true, message: "Select State" }]}
                 >
-                  <Select placeholder="Select state" className="rounded-lg">
+                  <Select placeholder="Select state">
                     <Option value="Maharashtra">Maharashtra</Option>
                     <Option value="Gujarat">Gujarat</Option>
                     <Option value="Karnataka">Karnataka</Option>
@@ -345,7 +365,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
                   name="zip"
                   rules={[{ required: true, message: "Enter Zip" }]}
                 >
-                  <Input placeholder="e.g. 400001" className="rounded-lg" />
+                  <Input placeholder="e.g. 400001" />
                 </Form.Item>
               </Col>
             </Row>
@@ -354,7 +374,7 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
               name="country"
               rules={[{ required: true, message: "Select Country" }]}
             >
-              <Select placeholder="Select country" className="rounded-lg">
+              <Select placeholder="Select country">
                 <Option value="India">India</Option>
                 <Option value="USA">USA</Option>
                 <Option value="Canada">Canada</Option>
@@ -363,19 +383,10 @@ const CardForm: React.FC<CardFormProps> = ({ editingCard, onClose }) => {
             </Form.Item>
           </div>
 
-          {/* Buttons */}
+          {/* BUTTONS */}
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              onClick={onClose}
-              className="h-10 rounded-lg border-gray-300 hover:bg-gray-100 transition-all duration-300"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="h-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 font-semibold transition-all duration-300 shadow-md"
-            >
+            <Button onClick={onClose}>Cancel</Button>
+            <Button type="primary" htmlType="submit">
               {editingCard ? "Update Product" : "Add Product"}
             </Button>
           </div>

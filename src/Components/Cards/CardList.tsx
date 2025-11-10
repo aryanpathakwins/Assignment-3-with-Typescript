@@ -6,7 +6,7 @@ import { fetchUsers, updateUser } from "../../Redux/useslice";
 import { addToCart } from "../../Redux/cartSlice";
 import CardForm from "./CardForms";
 import type CardType from "../../types/CardTypes";
-import { Modal, Select, InputNumber, message, Button } from "antd";
+import { Modal, Select, InputNumber, message, Button, Carousel } from "antd";
 import {
   ShoppingCartOutlined,
   EditOutlined,
@@ -16,7 +16,9 @@ import {
 
 const CardList: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { cards, loading, error } = useSelector((state: RootState) => state.cards);
+  const { cards, loading, error } = useSelector(
+    (state: RootState) => state.cards
+  );
   const { users } = useSelector((state: RootState) => state.user);
 
   const [editingCard, setEditingCard] = useState<CardType | null>(null);
@@ -24,7 +26,6 @@ const CardList: React.FC = () => {
   const [buyModalVisible, setBuyModalVisible] = useState(false);
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
 
-  // ✅ New states for Add-to-Cart modal
   const [cartModalVisible, setCartModalVisible] = useState(false);
   const [cartProduct, setCartProduct] = useState<CardType | null>(null);
   const [cartQuantity, setCartQuantity] = useState<number>(1);
@@ -72,7 +73,6 @@ const CardList: React.FC = () => {
     }
   };
 
-  // ✅ Updated handleAddToCart to open modal
   const handleAddToCart = (card: CardType) => {
     if (card.quantity <= 0) {
       message.warning("Out of stock! Cannot add to cart.");
@@ -83,7 +83,6 @@ const CardList: React.FC = () => {
     setCartModalVisible(true);
   };
 
-  // ✅ Confirm Add to Cart
   const handleConfirmAddToCart = () => {
     if (!cartProduct) return;
     if (cartQuantity <= 0) return message.warning("Enter valid quantity.");
@@ -104,7 +103,6 @@ const CardList: React.FC = () => {
     dispatch(addToCart(cartItem));
     message.success(`Added ${cartQuantity} × "${cartProduct.title}" to cart.`);
 
-    // ✅ Auto-close & reset
     setCartModalVisible(false);
     setCartProduct(null);
     setCartQuantity(1);
@@ -119,7 +117,8 @@ const CardList: React.FC = () => {
     const product = cards.find((c) => c.id === selectedProductId);
     if (!product) return message.error("Product not found.");
     if (product.quantity <= 0) return message.warning("Out of stock!");
-    if (purchaseQuantity <= 0) return message.warning("Please select a valid quantity.");
+    if (purchaseQuantity <= 0)
+      return message.warning("Please select a valid quantity.");
     if (purchaseQuantity > product.quantity)
       return message.warning(`Only ${product.quantity} in stock.`);
 
@@ -204,7 +203,6 @@ const CardList: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
         <h2 className="text-3xl font-bold text-gray-800">🛍️ Products</h2>
         <button
@@ -215,9 +213,11 @@ const CardList: React.FC = () => {
         </button>
       </div>
 
-      {/* Products Grid */}
+      {/* PRODUCT GRID */}
       {cards.length === 0 ? (
-        <p className="text-center text-gray-500 text-lg mt-12">No products available.</p>
+        <p className="text-center text-gray-500 text-lg mt-12">
+          No products available.
+        </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {cards.map((card) => (
@@ -225,17 +225,29 @@ const CardList: React.FC = () => {
               key={card.id}
               className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex flex-col relative"
             >
-              <div className="relative cursor-pointer">
-                {card.image ? (
-                  <img
-                    src={card.image}
-                    alt={card.title}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+              {/* ✅ Image Carousel */}
+              <div className="relative">
+                {card.images && card.images.length > 1 ? (
+                  <Carousel dots={true} autoplay className="rounded-t-2xl">
+                    {card.images.map(
+                      (img, idx) =>
+                        img && (
+                          <div key={idx}>
+                            <img
+                              src={img}
+                              alt={`Product ${idx}`}
+                              className="w-full h-48 object-cover"
+                            />
+                          </div>
+                        )
+                    )}
+                  </Carousel>
                 ) : (
-                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
-                    No Image
-                  </div>
+                  <img
+                    src={card.image || "https://via.placeholder.com/300x200"}
+                    alt={card.title}
+                    className="w-full h-48 object-cover"
+                  />
                 )}
 
                 <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -259,6 +271,7 @@ const CardList: React.FC = () => {
                 </div>
               </div>
 
+              {/* DETAILS */}
               <div className="p-5 flex flex-col flex-grow">
                 <h3
                   className="text-lg font-semibold text-gray-900 mb-1 truncate cursor-pointer"
@@ -272,7 +285,6 @@ const CardList: React.FC = () => {
                     {card.description}
                   </p>
                 )}
-
                 <div className="text-sm text-gray-700 space-y-1 flex-grow">
                   <p>
                     <strong>💰 Price:</strong> ${card.price}
@@ -281,18 +293,8 @@ const CardList: React.FC = () => {
                     <strong>📦 Stock:</strong>{" "}
                     {card.quantity > 0 ? card.quantity : "Out of Stock"}
                   </p>
-                  {(card.city || card.state || card.country) && (
-                    <div className="mt-2 text-gray-600 text-xs border-t pt-2">
-                      <p className="font-semibold">Address:</p>
-                      <p>
-                        {[card.city, card.state].filter(Boolean).join(", ")}{" "}
-                        {card.country && `- ${card.country}`}
-                      </p>
-                    </div>
-                  )}
                 </div>
 
-                {/* ✅ Buttons Section */}
                 <div className="mt-5 flex gap-2">
                   {card.quantity > 0 ? (
                     <>
@@ -302,12 +304,11 @@ const CardList: React.FC = () => {
                       >
                         <ShoppingCartOutlined /> Add to Cart
                       </button>
-
                       <button
                         onClick={() => {
                           setBuyModalVisible(true);
-                          setSelectedProductId("");
-                          setPostalCode("");
+                          setSelectedProductId(card.id);
+                          setPostalCode(card.zip || "");
                           setPurchaseQuantity(1);
                         }}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm rounded-md bg-green-600 text-white font-medium hover:bg-green-700 transition-all cursor-pointer"
@@ -330,7 +331,7 @@ const CardList: React.FC = () => {
         </div>
       )}
 
-      {/* ✅ Add-to-Cart Quantity Modal */}
+      {/* ✅ Add-to-Cart Modal */}
       <Modal
         open={cartModalVisible}
         onCancel={() => setCartModalVisible(false)}
@@ -372,7 +373,7 @@ const CardList: React.FC = () => {
         )}
       </Modal>
 
-      {/* Buy Modal */}
+      {/* ✅ Buy Modal */}
       <Modal
         open={buyModalVisible}
         onCancel={() => setBuyModalVisible(false)}
@@ -443,7 +444,7 @@ const CardList: React.FC = () => {
         </Button>
       </Modal>
 
-      {/* Receipt Modal */}
+      {/* ✅ Receipt Modal */}
       <Modal
         open={receiptModalVisible}
         onCancel={() => setReceiptModalVisible(false)}
@@ -469,7 +470,8 @@ const CardList: React.FC = () => {
               <strong>💵 Price per Unit:</strong> ${selectedProduct.price}
             </p>
             <p className="border-t pt-2 text-base font-semibold">
-              <strong>Total:</strong> ${selectedProduct.price * purchaseQuantity}
+              <strong>Total:</strong> $
+              {selectedProduct.price * purchaseQuantity}
             </p>
           </div>
         )}
@@ -483,7 +485,9 @@ const CardList: React.FC = () => {
         </Button>
       </Modal>
 
-      {showForm && <CardForm editingCard={editingCard} onClose={() => setShowForm(false)} />}
+      {showForm && (
+        <CardForm editingCard={editingCard} onClose={() => setShowForm(false)} />
+      )}
     </div>
   );
 };
